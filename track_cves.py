@@ -155,7 +155,8 @@ def get_epss_summary(df, ref_date):
         })
     return pd.DataFrame(summary_data)
 
-summary_df = get_epss_summary(df_all, DELIVERY_DATE)
+eval_date = DELIVERY_DATE
+summary_df = get_epss_summary(df_all, eval_date)
 
 filtered_summary = summary_df[summary_df["Team"] == chosen_group]
 
@@ -165,7 +166,7 @@ st.dataframe(filtered_summary, width="stretch")
 
 
 # --- Leaderboard
-st.subheader("🏆 Teams Leaderboard")
+st.subheader(f"🏆 Teams Leaderboard - Reference date {eval_date.strftime('%Y-%m-%d')}")
 
 leaderboard = (
     summary_df.groupby("Team")
