@@ -1,0 +1,29 @@
+name: Daily EPSS Fetch
+
+on:
+  schedule:
+    # Ogni giorno alle 03:00 UTC (modifica l'orario come preferisci)
+    - cron: '0 17 * * *'
+  workflow_dispatch:  # per lanciarlo anche a mano da GitHub
+
+jobs:
+  run-epss-fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # o la versione che preferisci
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests
+
+      - name: Run EPSS historical fetch
+        run: |
+          python fetch_data.py
