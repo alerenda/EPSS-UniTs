@@ -83,6 +83,8 @@ df_all = pd.merge(df_all, df_selected, on="CVE", how="right", validate="many_to_
 df_all["description_short"] = df_all["description"].astype(str).apply(
     lambda x: x[:100] + "..." if len(x) > 100 else x)
 
+df_all["nvd_url"] = df_all["CVE"].apply(lambda x: f'https://nvd.nist.gov/vuln/detail/{x}')
+
 df_all.to_csv("debug_merge.csv", index=False)
 
 
@@ -103,10 +105,8 @@ fig = px.line(
         "CVE": True,
         "epss": True,
         "description_short": True,
-        "vulnerable_cpes": True,
         "cvss_baseScore": True,
         "cvss_vectorString": True,
-        "Team": True
     },
     title=f"EPSS over time for selected CVEs – {chosen_group}"
 )
@@ -145,9 +145,13 @@ def get_epss_summary(df, ref_date):
         epss_max_gain = cve_df["delta_epss"].max()
         summary_data.append({
             "CVE": cve,
+            "NVD": cve_df["nvd_url"].iloc[0],
             "Team": cve_df["Team"].iloc[0],
+            "Initial cvss": f'{cve_df.iloc[0].cvss_baseScore} ({cve_df.iloc[0].cvss_version})',
             "Initial epss": epss_start,
             "Initial pct": pct_subset_start,
+            "Current epss": cve_df.iloc[-1]["epss"],
+            "Current pct": cve_df.iloc[-1]["percentile_subset"],
             "EPSS: avg gain": epss_avg_gain,
             "EPSS: max gain": epss_max_gain,
             "PCT: avg gain": pct_avg_gain,
@@ -155,14 +159,24 @@ def get_epss_summary(df, ref_date):
         })
     return pd.DataFrame(summary_data)
 
-eval_date = DELIVERY_DATE
+
+eval_date = REFERENCE_DATE
 summary_df = get_epss_summary(df_all, eval_date)
 
 filtered_summary = summary_df[summary_df["Team"] == chosen_group]
 
 # --- CVE tables with summary statistics
 st.subheader("CVE summary statistics")
-st.dataframe(filtered_summary, width="stretch")
+st.dataframe(
+    filtered_summary,
+    column_config={
+    "NVD": st.column_config.LinkColumn(
+        "NVD",           
+        display_text="🔗"  
+    )},
+    hide_index=True,
+    width="stretch")
+
 
 
 # --- Leaderboard
