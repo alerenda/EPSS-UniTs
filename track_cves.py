@@ -30,7 +30,7 @@ for fname in os.listdir(DATA_PATH):
         continue
     group_files[fname.replace(".csv", "")] = fname
 
-@st.cache_data
+@st.cache_data(ttl=60)
 def load_all_groups(group_files_dict):
     dfs = []
     team_count = 0
@@ -51,7 +51,7 @@ def load_all_groups(group_files_dict):
 df_selected = load_all_groups(group_files)
 
 
-@st.cache_data
+@st.cache_data(ttl=60)
 def get_epss_history():
     all_data = []
     for file_name in [x for x in sorted(os.listdir(CACHE_PATH))]:
