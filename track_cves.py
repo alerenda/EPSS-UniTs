@@ -55,13 +55,16 @@ df_selected = load_all_groups(group_files)
 def get_epss_history():
     all_data = []
     for file_name in [x for x in sorted(os.listdir(CACHE_PATH))]:
-        if not file_name.endswith('csv'):
+        if not file_name.endswith('csv'): 
+            continue
+        if file_name.startswith('cvss'): 
             continue
         path = os.path.join(CACHE_PATH, file_name)
         print(path)
         if os.path.exists(path):
             df = pd.read_csv(path)
-            df = df.rename(columns={"cve.id": "CVE"})
+            df = df.drop(columns = 'cve.id', errors='ignore')
+            df = df.rename(columns={"cvss_baseScore": "daily_cvss_baseScore"})
         all_data.append(df)
 
     final_df = pd.concat(all_data, ignore_index=True)
@@ -147,10 +150,11 @@ def get_epss_summary(df, ref_date):
             "CVE": cve,
             "NVD": cve_df["nvd_url"].iloc[0],
             "Team": cve_df["Team"].iloc[0],
-            "Initial cvss": f'{cve_df.iloc[0].cvss_baseScore} ({cve_df.iloc[0].cvss_version})',
+            "Initial cvss": f'{cve_df.iloc[0].cvss_baseScore}',
+            "Current cvss": f'{cve_df.iloc[-1].daily_cvss_baseScore}',
             "Initial epss": epss_start,
-            "Initial pct": pct_subset_start,
             "Current epss": cve_df.iloc[-1]["epss"],
+            "Initial pct": pct_subset_start,
             "Current pct": cve_df.iloc[-1]["percentile_subset"],
             "EPSS: avg gain": epss_avg_gain,
             "EPSS: max gain": epss_max_gain,
