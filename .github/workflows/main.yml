@@ -1,9 +1,11 @@
 name: Daily EPSS Fetch
 
+permissions:
+  contents: write  
+  
 on:
   schedule:
-    # Ogni giorno alle 03:00 UTC (modifica l'orario come preferisci)
-    - cron: '0 17 * * *'
+    - cron: '30 17 * * *'
   workflow_dispatch:  # per lanciarlo anche a mano da GitHub
 
 jobs:
@@ -13,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,3 +31,17 @@ jobs:
       - name: Run EPSS historical fetch
         run: |
           python fetch_data.py
+      
+      - name: Commit and push EPSS data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add cache_epss/*.csv || echo "No CSV files to add"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update EPSS cache $(date -u +'%Y-%m-%d') [skip ci]"
+            git push
+          fi
