@@ -21,7 +21,8 @@ if not os.path.exists(DATA_PATH):
     os.makedirs(DATA_PATH)
 
 st.set_page_config(page_title="CVE Selection", layout="wide")
-st.title("Tracking selected CVEs for each team")
+st.title("FantaCVE")
+st.subheader("Tracking EPSS values of selected CVEs")
 
 
 group_files = {}
@@ -97,7 +98,6 @@ chosen_group = st.selectbox("Select a team name", available_groups)
 df_filtered = df_all[df_all["Team"] == chosen_group]
 
 # --- EPSS over time
-st.subheader("EPSS over time for selected CVEs")
 
 fig = px.line(
     df_filtered,
@@ -111,7 +111,7 @@ fig = px.line(
         "cvss_baseScore": True,
         "cvss_vectorString": True,
     },
-    title=f"EPSS over time for selected CVEs – {chosen_group}"
+    #title=f"{chosen_group}: EPSS over time for selected CVEs"
 )
 
 fig.update_layout(
@@ -171,9 +171,9 @@ summary_df = get_epss_summary(df_all, eval_date)
 filtered_summary = summary_df[summary_df["Team"] == chosen_group]
 
 # --- CVE tables with summary statistics
-st.subheader("CVE summary statistics")
+st.subheader(f"{chosen_group}: CVE selection and summary statistics")
 st.dataframe(
-    filtered_summary,
+    filtered_summary.drop(columns=["Team"]),
     column_config={
     "NVD": st.column_config.LinkColumn(
         "NVD",           
@@ -190,11 +190,11 @@ st.subheader(f"🏆 Teams Leaderboard - Reference date {eval_date.strftime('%Y-%
 leaderboard = (
     summary_df.groupby("Team")
     .agg({
-        "EPSS: avg gain": "mean",
-        "EPSS: max gain": "max",
+        "EPSS: Avg gain": "mean",
+        "EPSS: Max gain": "max",
         })
     .reset_index()
-    .sort_values("EPSS: max gain", ascending=False)
+    .sort_values("EPSS: Max gain", ascending=False)
 )
 
 st.dataframe(leaderboard, width="stretch")
