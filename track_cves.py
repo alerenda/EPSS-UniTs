@@ -171,7 +171,7 @@ summary_df = get_epss_summary(df_all, eval_date)
 filtered_summary = summary_df[summary_df["Team"] == chosen_group]
 
 # --- CVE tables with summary statistics
-st.subheader(f"{chosen_group}: CVE selection and summary statistics")
+st.subheader(f"{chosen_group}: Selected CVEs and summary statistics")
 st.dataframe(
     filtered_summary.drop(columns=["Team"]),
     column_config={
