@@ -173,7 +173,7 @@ if __name__ == "__main__":
         group_files[fname.replace(".csv", "")] = fname
     df_epss_history = get_epss_history(group_files)
     today = datetime.today().strftime("%Y%m%d")
-    df_epss_history.to_csv(f"team_history_{today}.csv", index=False)
+    df_epss_history.to_csv(f"team_history.csv", index=False)
 
     
     
