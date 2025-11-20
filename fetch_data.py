@@ -7,6 +7,8 @@ from datetime import datetime
 
 REFERENCE_DATE_STR = "2025-10-01"
 
+TEAM_PATH = "team_selection"
+
 DATA_PATH = "all_cves"  
 FILENAME = "vuln_2025_09_id.csv"
 
@@ -108,9 +110,70 @@ def fetch_historical_data(cve_list, start_date=REFERENCE_DATE_STR):
             count_save += 1
                   
     print(f"Saved {count_save} new daily EPSS files.")
+
+def load_teams_selection(group_files_dict):
+    dfs = []
+    team_count = 0
+    for group_name, file_name in group_files_dict.items():
+        path = os.path.join(TEAM_PATH, file_name)
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            df = df.rename(columns={"cve.id": "CVE"})
+            df["Team"] = group_name
+            dfs.append(df)
+            team_count += 1
+    
+    if dfs:
+        print(f"Loaded selection for {team_count} teams.")
+        df = pd.concat(dfs, ignore_index=True)
+        df = df.drop(columns=["epss", "percentile"], errors="ignore")
+        return df
+    print("No team selection files found.")
+    return pd.DataFrame()
+
+def get_epss_history(group_files):
+    all_data = []
+    for file_name in [x for x in sorted(os.listdir(CACHE_PATH))]:
+        if not file_name.endswith('csv'): 
+            continue
+        if file_name.startswith('cvss'): 
+            continue
+        path = os.path.join(CACHE_PATH, file_name)
+        print(path)
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            df = df.drop(columns = 'cve.id', errors='ignore')
+            df = df.rename(columns={"cvss_baseScore": "daily_cvss_baseScore"})
+        all_data.append(df)
+
+    df_epss_history = pd.concat(all_data, ignore_index=True)
+    df_epss_history.rename(columns={"cve": "CVE"}, inplace=True)
+    df_epss_history["timestamp"] = pd.to_datetime(df_epss_history["timestamp"])
+    df_epss_history["epss"] = pd.to_numeric(df_epss_history["epss"], errors="coerce")
+
+    df_selection = load_teams_selection(group_files)
+    df_epss_history = pd.merge(df_epss_history, df_selection, on="CVE", how="right", validate="many_to_many")
+    df_epss_history["description_short"] = df_epss_history["description"].astype(str).apply(lambda x: x[:100] + "..." if len(x) > 100 else x)
+    df_epss_history["nvd_url"] = df_epss_history["CVE"].apply(lambda x: f'https://nvd.nist.gov/vuln/detail/{x}')
+    return df_epss_history
+
+
+# --- EPSS historical data
+
                 
 if __name__ == "__main__":
     df = pd.read_csv(os.path.join(DATA_PATH, FILENAME), sep=';')
     cve_list = df["cve.id"].dropna().unique().tolist()
     fetch_historical_data(cve_list)
+    
+    group_files = {}
+    for fname in os.listdir(TEAM_PATH):
+        if not fname.endswith(".csv"):
+            continue
+        group_files[fname.replace(".csv", "")] = fname
+    df_epss_history = get_epss_history(group_files)
+    today = datetime.today().strftime("%Y%m%d")
+    df_epss_history.to_csv(f"team_history_{today}.csv", index=False)
+
+    
     

@@ -26,70 +26,21 @@ for fname in os.listdir(DATA_PATH):
         continue
     group_files[fname.replace(".csv", "")] = fname
 
-@st.cache_data(ttl=60)
-def load_all_groups(group_files_dict):
-    dfs = []
-    team_count = 0
-    for group_name, file_name in group_files_dict.items():
-        path = os.path.join(DATA_PATH, file_name)
-        if os.path.exists(path):
-            df = pd.read_csv(path)
-            df = df.rename(columns={"cve.id": "CVE"})
-            df["Team"] = group_name
-            dfs.append(df)
-            team_count += 1
-    if dfs:
-        print(f"Loaded selection for {team_count} teams.")
-        return pd.concat(dfs, ignore_index=True)
-    print("No team selection files found.")
-    return pd.DataFrame()
 
-df_selected = load_all_groups(group_files)
-
-
-@st.cache_data(ttl=60)
-def get_epss_history():
-    all_data = []
-    for file_name in [x for x in sorted(os.listdir(CACHE_PATH))]:
-        if not file_name.endswith('csv'): 
-            continue
-        if file_name.startswith('cvss'): 
-            continue
-        path = os.path.join(CACHE_PATH, file_name)
-        print(path)
-        if os.path.exists(path):
-            df = pd.read_csv(path)
-            df = df.drop(columns = 'cve.id', errors='ignore')
-            df = df.rename(columns={"cvss_baseScore": "daily_cvss_baseScore"})
-        all_data.append(df)
-
-    final_df = pd.concat(all_data, ignore_index=True)
-    final_df.rename(columns={"cve": "CVE"}, inplace=True)
-    final_df["timestamp"] = pd.to_datetime(final_df["timestamp"])
-    final_df["epss"] = pd.to_numeric(final_df["epss"], errors="coerce")
-    return final_df
+@st.cache_data(ttl=3600)
+def load_epss_data():
+    today = datetime.today().strftime("%Y%m%d")
+    df = pd.read_csv(f"team_history_{today}.csv")
+    return df
 
 
 # --- EPSS historical data
-df_all = get_epss_history()
-
-df_all.to_csv("debug_all_epss_history.csv", index=False)
-df_selected.to_csv("debug_selected_cves.csv", index=False)
-
-# --- Join metadata and team selection
-df_selected = df_selected.drop(columns=["epss", "percentile"], errors="ignore")
-df_all = pd.merge(df_all, df_selected, on="CVE", how="right", validate="many_to_many")
-df_all["description_short"] = df_all["description"].astype(str).apply(
-    lambda x: x[:100] + "..." if len(x) > 100 else x)
-
-df_all["nvd_url"] = df_all["CVE"].apply(lambda x: f'https://nvd.nist.gov/vuln/detail/{x}')
-
-df_all.to_csv("debug_merge.csv", index=False)
-
+df_epss_history = load_epss_data()
 
 # --- Summary statistics
 def get_epss_summary(df, ref_date):
     summary_data = []
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
     for (team, cve), cve_df in df.groupby(["Team", "CVE"], dropna=False):
         cve_df = cve_df.sort_values("timestamp")
         cve_df = cve_df[cve_df["timestamp"] >= ref_date]
@@ -131,13 +82,13 @@ st.set_page_config(page_title="CVE Selection", layout="wide")
 st.title("FantaCVE: Predict the next high-EPSS vulnerabilities")
 tab1, tab2 = st.tabs(["📈 Team selection", "🏆 Leaderboard"])
 with tab1:
-    available_groups = df_selected["Team"].unique().tolist()
+    available_groups = df_epss_history["Team"].unique().tolist()
 
     chosen_group = st.selectbox("Select a team name", available_groups)
-    df_filtered = df_all[df_all["Team"] == chosen_group]
+    df_filtered = df_epss_history[df_epss_history["Team"] == chosen_group]
 
     eval_date = REFERENCE_DATE
-    summary_df = get_epss_summary(df_all, eval_date)
+    summary_df = get_epss_summary(df_epss_history, eval_date)
 
     filtered_summary = summary_df[summary_df["Team"] == chosen_group]
 
