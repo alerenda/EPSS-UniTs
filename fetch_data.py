@@ -1,21 +1,18 @@
 
-from time import sleep
 import pandas as pd
 import requests
 import os
 from datetime import datetime
 
 REFERENCE_DATE_STR = "2025-10-01"
-
 TEAM_PATH = "team_selection"
-
+CACHE_PATH = "cache_epss"
 DATA_PATH = "all_cves"  
 FILENAME = "vuln_2025_09_id.csv"
-
 URL = "https://api.first.org/data/v1/epss"
 NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
-CACHE_PATH = "cache_epss"
+
 if not os.path.exists(CACHE_PATH):
     os.makedirs(CACHE_PATH)
 
@@ -172,7 +169,6 @@ if __name__ == "__main__":
             continue
         group_files[fname.replace(".csv", "")] = fname
     df_epss_history = get_epss_history(group_files)
-    today = datetime.today().strftime("%Y%m%d")
     df_epss_history.to_csv(f"team_history.csv", index=False)
 
     

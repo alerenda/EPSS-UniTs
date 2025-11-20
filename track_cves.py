@@ -29,7 +29,6 @@ for fname in os.listdir(DATA_PATH):
 
 @st.cache_data(ttl=3600)
 def load_epss_data():
-    today = datetime.today().strftime("%Y%m%d")
     df = pd.read_csv(f"team_history.csv")
     return df
 
