@@ -137,6 +137,7 @@ def get_epss_summary(df, ref_date):
         epss_start = cve_df.iloc[0]["epss"]
         if pd.isna(epss_start):
             continue
+        pct_start = cve_df.iloc[0]["percentile"]
         pct_subset_start = cve_df.iloc[0]["percentile_subset"]
         if pd.isna(epss_start):
             continue
@@ -154,12 +155,12 @@ def get_epss_summary(df, ref_date):
             "Current cvss": f'{cve_df.iloc[-1].daily_cvss_baseScore}',
             "Initial epss": epss_start,
             "Current epss": cve_df.iloc[-1]["epss"],
-            "Initial pct": pct_subset_start,
-            "Current pct": cve_df.iloc[-1]["percentile_subset"],
+            "Initial pct": pct_start,
+            "Current pct": cve_df.iloc[-1]["percentile"],
+            "Initial pct (subset)": pct_subset_start,
+            "Current pct (subset)": cve_df.iloc[-1]["percentile_subset"],
             "EPSS: avg gain": epss_avg_gain,
             "EPSS: max gain": epss_max_gain,
-            "PCT: avg gain": pct_avg_gain,
-            "PCT: max gain": pct_max_gain,
         })
     return pd.DataFrame(summary_data)
 
@@ -191,11 +192,9 @@ leaderboard = (
     .agg({
         "EPSS: avg gain": "mean",
         "EPSS: max gain": "max",
-        "PCT: avg gain": "mean",
-        "PCT: max gain": "max",
         })
     .reset_index()
-    .sort_values("PCT: avg gain", ascending=False)
+    .sort_values("EPSS: max gain", ascending=False)
 )
 
 st.dataframe(leaderboard, width="stretch")
