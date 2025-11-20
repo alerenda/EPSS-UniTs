@@ -20,11 +20,6 @@ if not os.path.exists(CACHE_PATH):
 if not os.path.exists(DATA_PATH):
     os.makedirs(DATA_PATH)
 
-st.set_page_config(page_title="CVE Selection", layout="wide")
-st.title("FantaCVE")
-st.subheader("Tracking EPSS values of selected CVEs")
-
-
 group_files = {}
 for fname in os.listdir(DATA_PATH):
     if not fname.endswith(".csv"):
@@ -92,40 +87,6 @@ df_all["nvd_url"] = df_all["CVE"].apply(lambda x: f'https://nvd.nist.gov/vuln/de
 df_all.to_csv("debug_merge.csv", index=False)
 
 
-# --- Filter for visualization
-available_groups = df_selected["Team"].unique().tolist()
-chosen_group = st.selectbox("Select a team name", available_groups)
-df_filtered = df_all[df_all["Team"] == chosen_group]
-
-# --- EPSS over time
-
-fig = px.line(
-    df_filtered,
-    x="timestamp",
-    y="epss",
-    color="CVE",
-    hover_data={
-        "CVE": True,
-        "epss": True,
-        "description_short": True,
-        "cvss_baseScore": True,
-        "cvss_vectorString": True,
-    },
-    #title=f"{chosen_group}: EPSS over time for selected CVEs"
-)
-
-fig.update_layout(
-    height=500,
-    legend_title_text="CVE",
-    xaxis_title="Date",
-    yaxis_title="EPSS",
-    hovermode="closest",
-#    yaxis=dict(type="log"),
-#    yaxis_range=[0.0000001,1]
-)
-
-st.plotly_chart(fig, width="stretch")
-
 # --- Summary statistics
 def get_epss_summary(df, ref_date):
     summary_data = []
@@ -165,36 +126,87 @@ def get_epss_summary(df, ref_date):
     return pd.DataFrame(summary_data)
 
 
-eval_date = REFERENCE_DATE
-summary_df = get_epss_summary(df_all, eval_date)
 
-filtered_summary = summary_df[summary_df["Team"] == chosen_group]
+st.set_page_config(page_title="CVE Selection", layout="wide")
+st.title("FantaCVE: Predict the next high-EPSS vulnerabilities")
+tab1, tab2 = st.tabs(["📈 Team selection", "🏆 Leaderboard"])
+with tab1:
+    available_groups = df_selected["Team"].unique().tolist()
 
-# --- CVE tables with summary statistics
-st.subheader(f"{chosen_group}: Selected CVEs and summary statistics")
-st.dataframe(
-    filtered_summary.drop(columns=["Team"]),
-    column_config={
-    "NVD": st.column_config.LinkColumn(
-        "NVD",           
-        display_text="🔗"  
-    )},
-    hide_index=True,
-    width="stretch")
+    chosen_group = st.selectbox("Select a team name", available_groups)
+    df_filtered = df_all[df_all["Team"] == chosen_group]
+
+    eval_date = REFERENCE_DATE
+    summary_df = get_epss_summary(df_all, eval_date)
+
+    filtered_summary = summary_df[summary_df["Team"] == chosen_group]
+
+    st.subheader("Tracking EPSS values of selected CVEs")
 
 
 
-# --- Leaderboard
-st.subheader(f"🏆 Teams Leaderboard - Reference date {eval_date.strftime('%Y-%m-%d')}")
 
-leaderboard = (
-    summary_df.groupby("Team")
-    .agg({
-        "EPSS: Avg gain": "mean",
-        "EPSS: Max gain": "max",
-        })
-    .reset_index()
-    .sort_values("EPSS: Max gain", ascending=False)
-)
+    fig = px.line(
+        df_filtered,
+        x="timestamp",
+        y="epss",
+        color="CVE",
+        hover_data={
+            "CVE": True,
+            "epss": True,
+            "description_short": True,
+            "cvss_baseScore": True,
+            "cvss_vectorString": True,
+        },
+        #title=f"{chosen_group}: EPSS over time for selected CVEs"
+    )
 
-st.dataframe(leaderboard, width="stretch")
+    fig.update_layout(
+        height=500,
+        legend_title_text="CVE",
+        xaxis_title="Date",
+        yaxis_title="EPSS",
+        hovermode="closest",
+    #    yaxis=dict(type="log"),
+    #    yaxis_range=[0.0000001,1]
+    )
+
+    st.plotly_chart(fig, width="stretch")
+
+
+
+    # --- CVE tables with summary statistics
+    st.subheader(f"{chosen_group}: Selected CVEs and summary statistics")
+    st.dataframe(
+        filtered_summary.drop(columns=["Team"]),
+        column_config={
+        "NVD": st.column_config.LinkColumn(
+            "NVD",           
+            display_text="🔗"  
+        )},
+        hide_index=True,
+        width="stretch")
+
+with tab2:
+
+    # --- Leaderboard
+    st.subheader(f"Reference date {eval_date.strftime('%Y-%m-%d')}")
+
+    leaderboard = (
+        summary_df.groupby("Team")
+        .agg({
+            "EPSS: Avg gain": "mean",
+            "EPSS: Max gain": "max",
+            })
+        .reset_index()
+        .sort_values("EPSS: Max gain", ascending=False)
+    )
+
+    height = 35 * (len(leaderboard) + 1)
+
+    st.dataframe(
+        leaderboard,
+        hide_index=True,
+        height=height,   
+        width="content"
+    )
