@@ -139,11 +139,11 @@ with tab1:
     # --- CVE tables with summary statistics
     st.subheader(f"{chosen_group}: Selected CVEs and summary statistics")
     st.dataframe(
-        filtered_summary.drop(columns=["Team"]),
+        filtered_summary.drop(columns=["CVE","Team"]),
         column_config={
         "NVD": st.column_config.LinkColumn(
-            "NVD",           
-            display_text="🔗"  
+            "CVE",           
+            display_text=r".*/(CVE-\d{4}-\d+)$"
         )},
         hide_index=True,
         width="stretch")
