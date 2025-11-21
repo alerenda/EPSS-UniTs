@@ -92,7 +92,11 @@ with tab1:
     filtered_summary = summary_df[summary_df["Team"] == chosen_group]
 
     st.subheader("Tracking EPSS values of selected CVEs")
-
+    y_scale_option = st.radio(
+        "Select y-axis scale",
+        ["auto", "up to 0.01", "up to 0.1", "up to 1"],
+        horizontal=True
+    )
 
 
 
@@ -120,6 +124,13 @@ with tab1:
     #    yaxis=dict(type="log"),
     #    yaxis_range=[0.0000001,1]
     )
+
+    if y_scale_option == "up to 0.01":
+        fig.update_yaxes(range=[0, 0.01])
+    elif y_scale_option == "up to 0.1":
+        fig.update_yaxes(range=[0, 0.1])
+    elif y_scale_option == "up to 1":
+        fig.update_yaxes(range=[0, 1])
 
     st.plotly_chart(fig, width="stretch")
 
