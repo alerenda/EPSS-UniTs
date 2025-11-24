@@ -79,6 +79,18 @@ def get_epss_summary(df, ref_date):
 
 st.set_page_config(page_title="CVE Selection", layout="wide")
 st.title("FantaCVE: Predict the next high-EPSS vulnerabilities")
+
+primary = st.get_option("theme.primaryColor")
+
+st.markdown("""
+### How does it work
+- **One vulnerability dataset**, consisting of CVEs published between 2025/09/01 and 2025/09/30, sourced from [NVD](https://nvd.nist.gov).
+- **Fourteen teams**: each team selected 10 CVEs and submitted their picks on 2025/10/17.
+- EPSS values for all selected CVEs are **updated daily**.
+- The final **leaderboard** will be evaluated on 2025/12/11, based on average and maximum EPSS gain.
+""")
+
+
 tab1, tab2 = st.tabs(["📈 Team selection", "🏆 Leaderboard"])
 with tab1:
     available_groups = df_epss_history["Team"].unique().tolist()
@@ -171,3 +183,23 @@ with tab2:
         height=height,   
         width="content"
     )
+
+st.markdown("""
+<style>
+.footer {
+    position: relative;
+    margin-top: 50px;
+    padding: 15px;
+    background-color: rgba(70, 70, 70, 0.35);
+    color: #ddd;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+}
+</style>
+
+<div class="footer">
+    This activity was carried out within the <a href="https://alerenda.github.io/teaching/cybersecurity/" target="_blank">Cybersecurity LAB</a> course of the 
+   <a href="https://degree.units.it/en/0320107303300001" target="_blank">Computer Engineering MSc</a> program at the University of Trieste.
+</div>
+""", unsafe_allow_html=True)
