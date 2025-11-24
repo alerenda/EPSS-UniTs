@@ -190,8 +190,8 @@ st.markdown("""
     position: relative;
     margin-top: 50px;
     padding: 15px;
-    background-color: rgba(70, 70, 70, 0.35);
-    color: #ddd;
+    background-color: var(--secondary-background-color);
+    color: var(--text-color);
     border-radius: 8px;
     text-align: center;
     font-size: 14px;
