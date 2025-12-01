@@ -89,7 +89,7 @@ st.markdown("""
 - **One dataset**, consisting of **4328 CVEs** published between 2025/09/01 and 2025/09/30, sourced from [NVD](https://nvd.nist.gov).
 - **Fourteen teams**: each team selected 10 CVEs and submitted their picks on 2025/10/17 ("Reference Date").
 - EPSS values for all selected CVEs are **updated daily**.
-- The final **leaderboard** will be evaluated on 2025/12/11.
+- The final **leaderboard** will be evaluated on 2025/12/10.
 """)
 
 
