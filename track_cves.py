@@ -72,6 +72,8 @@ def get_epss_summary(df, ref_date):
             "Current PCT (subset)": cve_df.iloc[-1]["percentile_subset"],
             "EPSS: Avg gain": epss_avg_gain,
             "EPSS: Max gain": epss_max_gain,
+            "PCT: Avg gain": pct_avg_gain,
+            "PCT: Max gain": pct_max_gain,
         })
     return pd.DataFrame(summary_data)
 
@@ -85,9 +87,9 @@ primary = st.get_option("theme.primaryColor")
 st.markdown("""
 ### How does it work
 - **One dataset**, consisting of **4328 CVEs** published between 2025/09/01 and 2025/09/30, sourced from [NVD](https://nvd.nist.gov).
-- **Fourteen teams**: each team selected 10 CVEs and submitted their picks on 2025/10/17.
+- **Fourteen teams**: each team selected 10 CVEs and submitted their picks on 2025/10/17 ("Reference Date").
 - EPSS values for all selected CVEs are **updated daily**.
-- The final **leaderboard** will be evaluated on 2025/12/11, based on average and maximum EPSS gain.
+- The final **leaderboard** will be evaluated on 2025/12/11.
 """)
 
 
@@ -97,8 +99,9 @@ with tab1:
 
     chosen_group = st.selectbox("Select a team name", available_groups)
     df_filtered = df_epss_history[df_epss_history["Team"] == chosen_group]
+    df_filtered["timestamp"] = pd.to_datetime(df_filtered["timestamp"])
 
-    eval_date = REFERENCE_DATE
+    eval_date = DELIVERY_DATE
     summary_df = get_epss_summary(df_epss_history, eval_date)
 
     filtered_summary = summary_df[summary_df["Team"] == chosen_group]
@@ -143,6 +146,23 @@ with tab1:
         fig.update_yaxes(range=[0, 0.1])
     elif y_scale_option == "up to 1":
         fig.update_yaxes(range=[0, 1])
+  
+    fig.add_vline(
+        x=eval_date,
+        line_width=0.5,
+        line_dash="dash",
+        line_color="gray",
+    )
+    fig.add_annotation(
+        x=eval_date,
+        y=1,
+        xref="x",
+        yref="paper",
+        text="Reference Date",
+        showarrow=False,
+        xanchor="left",
+        yanchor="bottom"
+    )
 
     st.plotly_chart(fig, width="stretch")
 
@@ -170,6 +190,8 @@ with tab2:
         .agg({
             "EPSS: Avg gain": "mean",
             "EPSS: Max gain": "max",
+            "PCT: Avg gain": "mean",
+            "PCT: Max gain": "max",
             })
         .reset_index()
         .sort_values("EPSS: Max gain", ascending=False)
