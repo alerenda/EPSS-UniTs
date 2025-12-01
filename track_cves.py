@@ -197,10 +197,21 @@ with tab2:
         .sort_values("EPSS: Max gain", ascending=False)
     )
 
+
+    # Colonne sulle quali calcolare i ranking
+    rank_cols = ["EPSS: Avg gain", "EPSS: Max gain", "PCT: Avg gain", "PCT: Max gain"]
+
+    # Calcolo ranking per ciascuna colonna (rank più basso = migliore)
+    for col in rank_cols:
+        leaderboard[col + " Rank"] = leaderboard[col].rank(ascending=False, method="average")
+
+    # Calcolo della media dei ranking
+    leaderboard["Avg Rank"] = leaderboard[[c + " Rank" for c in rank_cols]].mean(axis=1)
+
     height = 35 * (len(leaderboard) + 1)
 
     st.dataframe(
-        leaderboard,
+        leaderboard.drop(columns=[c + " Rank" for c in rank_cols]),
         hide_index=True,
         height=height,   
         width="content"
