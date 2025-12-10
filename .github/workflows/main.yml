@@ -5,7 +5,7 @@ permissions:
   
 on:
   schedule:
-    - cron: '15 14 * * *'
+    - cron: '30 15 * * *'
   workflow_dispatch:  # per lanciarlo anche a mano da GitHub
 
 jobs:
