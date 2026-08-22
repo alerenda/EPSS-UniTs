@@ -6,3 +6,5 @@ __pycache__/
 debug*
 owasp_DC.sh
 odc-reports
+team_history.csv
+

@@ -15,6 +15,10 @@ THRESHOLD = 0.1
 
 DATA_PATH = "team_selection"
 CACHE_PATH = "cache_epss"
+HISTORY_TIMESERIES_FILE = "team_history_timeseries.csv"
+METADATA_FILE = "team_cve_metadata.csv"
+LEGACY_HISTORY_FILE = "team_history.csv"
+
 if not os.path.exists(CACHE_PATH):
     os.makedirs(CACHE_PATH)
 if not os.path.exists(DATA_PATH):
@@ -29,8 +33,12 @@ for fname in os.listdir(DATA_PATH):
 
 @st.cache_data(ttl=3600)
 def load_epss_data():
-    df = pd.read_csv(f"team_history.csv")
-    return df
+    if os.path.exists(HISTORY_TIMESERIES_FILE) and os.path.exists(METADATA_FILE):
+        df_history = pd.read_csv(HISTORY_TIMESERIES_FILE)
+        df_metadata = pd.read_csv(METADATA_FILE)
+        return df_history.merge(df_metadata, on=["Team", "CVE"], how="left", validate="many_to_one")
+
+    return pd.read_csv(LEGACY_HISTORY_FILE)
 
 
 # --- EPSS historical data

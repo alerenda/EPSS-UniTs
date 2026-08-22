@@ -9,6 +9,8 @@ TEAM_PATH = "team_selection"
 CACHE_PATH = "cache_epss"
 DATA_PATH = "all_cves"  
 FILENAME = "vuln_2025_09_id.csv"
+HISTORY_TIMESERIES_FILE = "team_history_timeseries.csv"
+METADATA_FILE = "team_cve_metadata.csv"
 URL = "https://api.first.org/data/v1/epss"
 NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
@@ -154,6 +156,28 @@ def get_epss_history(group_files):
     df_epss_history["nvd_url"] = df_epss_history["CVE"].apply(lambda x: f'https://nvd.nist.gov/vuln/detail/{x}')
     return df_epss_history
 
+def save_compact_history(df_epss_history):
+    timeseries_columns = [
+        "Team",
+        "CVE",
+        "timestamp",
+        "epss",
+        "percentile",
+        "percentile_subset",
+        "daily_cvss_baseScore",
+    ]
+    existing_timeseries_columns = [col for col in timeseries_columns if col in df_epss_history.columns]
+    df_epss_history[existing_timeseries_columns].to_csv(HISTORY_TIMESERIES_FILE, index=False)
+
+    metadata_excluded_columns = set(existing_timeseries_columns + ["date", "cve.lastModified_x"]) - {"Team", "CVE"}
+    metadata_columns = [col for col in df_epss_history.columns if col not in metadata_excluded_columns]
+    metadata_key = [col for col in ["Team", "CVE"] if col in metadata_columns]
+    if metadata_key:
+        df_metadata = df_epss_history[metadata_columns].drop_duplicates(subset=metadata_key)
+    else:
+        df_metadata = df_epss_history[metadata_columns].drop_duplicates()
+    df_metadata.to_csv(METADATA_FILE, index=False)
+
 
 # --- EPSS historical data
 
@@ -169,7 +193,4 @@ if __name__ == "__main__":
             continue
         group_files[fname.replace(".csv", "")] = fname
     df_epss_history = get_epss_history(group_files)
-    df_epss_history.to_csv(f"team_history.csv", index=False)
-
-    
-    
+    save_compact_history(df_epss_history)
