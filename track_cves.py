@@ -7,8 +7,8 @@ from datetime import datetime
 import plotly.express as px
 
 # --- Configurazione
-REFERENCE_DATE_STR = "2025-10-01"
-DELIVERY_DATE_STR = "2025-10-17"
+REFERENCE_DATE_STR = "2026-09-20"
+DELIVERY_DATE_STR = "2026-09-22"
 REFERENCE_DATE = pd.to_datetime(REFERENCE_DATE_STR)
 DELIVERY_DATE = pd.to_datetime(DELIVERY_DATE_STR)
 THRESHOLD = 0.1
@@ -17,7 +17,6 @@ DATA_PATH = "team_selection"
 CACHE_PATH = "cache_epss"
 HISTORY_TIMESERIES_FILE = "team_history_timeseries.csv"
 METADATA_FILE = "team_cve_metadata.csv"
-LEGACY_HISTORY_FILE = "team_history.csv"
 
 if not os.path.exists(CACHE_PATH):
     os.makedirs(CACHE_PATH)
@@ -33,13 +32,11 @@ for fname in os.listdir(DATA_PATH):
 
 @st.cache_data(ttl=3600)
 def load_epss_data():
-    if os.path.exists(HISTORY_TIMESERIES_FILE) and os.path.exists(METADATA_FILE):
-        df_history = pd.read_csv(HISTORY_TIMESERIES_FILE)
-        df_metadata = pd.read_csv(METADATA_FILE)
-        return df_history.merge(df_metadata, on=["Team", "CVE"], how="left", validate="many_to_one")
+    df_history = pd.read_csv(HISTORY_TIMESERIES_FILE)
+    df_metadata = pd.read_csv(METADATA_FILE)
+    return df_history.merge(df_metadata, on=["Team", "CVE"], how="left", validate="many_to_one")
 
-    return pd.read_csv(LEGACY_HISTORY_FILE)
-
+    
 
 # --- EPSS historical data
 df_epss_history = load_epss_data()
@@ -57,15 +54,15 @@ def get_epss_summary(df, ref_date):
         if pd.isna(epss_start):
             continue
         pct_start = cve_df.iloc[0]["percentile"]
-        pct_subset_start = cve_df.iloc[0]["percentile_subset"]
+        # pct_subset_start = cve_df.iloc[0]["percentile_subset"]
         if pd.isna(epss_start):
             continue
-        cve_df["delta_pct"] = cve_df["percentile_subset"] - pct_subset_start
+        # cve_df["delta_pct"] = cve_df["percentile_subset"] - pct_subset_start
         cve_df["delta_epss"] = cve_df["epss"] - epss_start
-        pct_avg_gain = cve_df["delta_pct"].mean()
-        pct_max_gain = cve_df["delta_pct"].max()
+        # pct_avg_gain = cve_df["delta_pct"].mean()
+        # pct_max_gain = cve_df["delta_pct"].max()
         epss_avg_gain = cve_df["delta_epss"].mean()
-        epss_max_gain = cve_df["delta_epss"].max()
+        # epss_max_gain = cve_df["delta_epss"].max()
         summary_data.append({
             "CVE": cve,
             "NVD": cve_df["nvd_url"].iloc[0],
@@ -76,12 +73,12 @@ def get_epss_summary(df, ref_date):
             "Current EPSS": cve_df.iloc[-1]["epss"],
             "Initial PCT": pct_start,
             "Current PCT": cve_df.iloc[-1]["percentile"],
-            "Initial PCT (subset)": pct_subset_start,
-            "Current PCT (subset)": cve_df.iloc[-1]["percentile_subset"],
-            "EPSS: Avg gain": epss_avg_gain,
-            "EPSS: Max gain": epss_max_gain,
-            "PCT: Avg gain": pct_avg_gain,
-            "PCT: Max gain": pct_max_gain,
+          #  "Initial PCT (subset)": pct_subset_start,
+          #  "Current PCT (subset)": cve_df.iloc[-1]["percentile_subset"],
+            "EPSS: Avg change": epss_avg_gain,
+          #  "EPSS: Max gain": epss_max_gain,
+          #  "PCT: Avg gain": pct_avg_gain,
+          #  "PCT: Max gain": pct_max_gain,
         })
     return pd.DataFrame(summary_data)
 
@@ -94,10 +91,10 @@ primary = st.get_option("theme.primaryColor")
 
 st.markdown("""
 ### How does it work
-- **One dataset**, consisting of **4328 CVEs** published between 2025/09/01 and 2025/09/30, sourced from [NVD](https://nvd.nist.gov).
-- **Fourteen teams**: each team selected 10 CVEs and submitted their picks on 2025/10/17 ("Reference Date").
+- **One dataset**, consisting of **XXX CVEs** published between YYYY/MM/DD and YYYY/MM/DD, sourced from [NVD](https://nvd.nist.gov).
+- Each student selected 10 CVEs and submitted their picks on YYYY/MM/DD ("Reference Date").
 - EPSS values for all selected CVEs are **updated daily**.
-- The final **leaderboard** will be evaluated on 2025/12/10.
+- The final **leaderboard** will be evaluated on YYYY/MM/DD.
 """)
 
 
@@ -196,30 +193,18 @@ with tab2:
     leaderboard = (
         summary_df.groupby("Team")
         .agg({
-            "EPSS: Avg gain": "mean",
-            "EPSS: Max gain": "max",
-            "PCT: Avg gain": "mean",
-            "PCT: Max gain": "max",
+            "EPSS: Avg change": "sum",
             })
         .reset_index()
-        .sort_values("EPSS: Max gain", ascending=False)
+        .sort_values("EPSS: Avg change", ascending=False)
     )
 
 
-    # Colonne sulle quali calcolare i ranking
-    rank_cols = ["EPSS: Avg gain", "EPSS: Max gain", "PCT: Avg gain", "PCT: Max gain"]
-
-    # Calcolo ranking per ciascuna colonna (rank più basso = migliore)
-    for col in rank_cols:
-        leaderboard[col + " Rank"] = leaderboard[col].rank(ascending=False, method="average")
-
-    # Calcolo della media dei ranking
-    leaderboard["Avg Rank"] = leaderboard[[c + " Rank" for c in rank_cols]].mean(axis=1)
 
     height = 35 * (len(leaderboard) + 1)
 
     st.dataframe(
-        leaderboard.drop(columns=[c + " Rank" for c in rank_cols]),
+        leaderboard,
         hide_index=True,
         height=height,   
         width="content"

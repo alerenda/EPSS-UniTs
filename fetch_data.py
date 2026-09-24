@@ -2,13 +2,16 @@
 import pandas as pd
 import requests
 import os
+import time
 from datetime import datetime
 
-REFERENCE_DATE_STR = "2025-10-01"
+REFERENCE_DATE_STR = "2026-09-20"
+NVD_DATE_START = '2026-08-28T00:00:00.000Z'
+NVD_DATE_END = '2026-09-28T00:00:00.000Z'
 TEAM_PATH = "team_selection"
 CACHE_PATH = "cache_epss"
 DATA_PATH = "all_cves"  
-FILENAME = "vuln_2025_09_id.csv"
+FILENAME = "vuln_2026_09_id.csv"
 HISTORY_TIMESERIES_FILE = "team_history_timeseries.csv"
 METADATA_FILE = "team_cve_metadata.csv"
 URL = "https://api.first.org/data/v1/epss"
@@ -43,8 +46,8 @@ def extract_cvss_data(row):
 
 
 def fetch_cvss_batch():
-    date_start_nvd = '2025-09-01T00:00:00.000Z' # Do NOT change these dates
-    date_end_nvd   = '2025-10-01T00:00:00.000Z' # Do NOT change these dates
+    date_start_nvd = NVD_DATE_START # Do NOT change these dates
+    date_end_nvd   = NVD_DATE_END # Do NOT change these dates
     start_index = 0
     results_per_page = 1000
     total_results = 1 
@@ -60,17 +63,21 @@ def fetch_cvss_batch():
             "noRejected": ""
         }
         response = requests.get(NVD_URL, params=params, timeout=6)
+        if response.status_code == 429:
+            print("Rate limit raggiunto. Aspetto 30 secondi...")
+            time.sleep(30)
+            continue
+
         if response.status_code != 200:
-            print("Error:", response.status_code)
+            print("Error:", response.status_code, response.reason, response.content)
             break
 
         data = response.json()
         total_results = data.get("totalResults", 0)
-
         all_cves.extend(data.get("vulnerabilities", []))
-
         start_index += results_per_page
-        print(start_index)
+        print(f"{start_index} / {total_results}")
+        time.sleep(6)
     df = pd.json_normalize(all_cves, record_path=None, sep='.', max_level=None)
     cvss_expanded = df.apply(lambda row: pd.Series(extract_cvss_data(row)), axis=1)
     df = pd.concat([df, cvss_expanded], axis=1)
@@ -183,7 +190,8 @@ def save_compact_history(df_epss_history):
 
                 
 if __name__ == "__main__":
-    df = pd.read_csv(os.path.join(DATA_PATH, FILENAME), sep=';')
+    df = pd.read_csv(os.path.join(DATA_PATH, FILENAME), sep=',')
+    print(df.columns)
     cve_list = df["cve.id"].dropna().unique().tolist()
     fetch_historical_data(cve_list)
     
