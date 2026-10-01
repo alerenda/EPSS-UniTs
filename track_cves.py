@@ -77,7 +77,7 @@ def get_epss_summary(df, ref_date):
           #  "Initial PCT (subset)": pct_subset_start,
           #  "Current PCT (subset)": cve_df.iloc[-1]["percentile_subset"],
             "EPSS: Avg change": epss_avg_gain,
-            "EPSS: Max gain": epss_max_gain,
+            "EPSS: Max change": epss_max_gain,
           #  "PCT: Avg gain": pct_avg_gain,
           #  "PCT: Max gain": pct_max_gain,
         })
