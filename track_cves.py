@@ -62,6 +62,7 @@ def get_epss_summary(df, ref_date):
         # pct_avg_gain = cve_df["delta_pct"].mean()
         # pct_max_gain = cve_df["delta_pct"].max()
         epss_avg_gain = cve_df["delta_epss"].mean()
+        epss_max_gain = cve_df["delta_epss"].max()
         # epss_max_gain = cve_df["delta_epss"].max()
         summary_data.append({
             "CVE": cve,
@@ -76,7 +77,7 @@ def get_epss_summary(df, ref_date):
           #  "Initial PCT (subset)": pct_subset_start,
           #  "Current PCT (subset)": cve_df.iloc[-1]["percentile_subset"],
             "EPSS: Avg change": epss_avg_gain,
-          #  "EPSS: Max gain": epss_max_gain,
+            "EPSS: Max gain": epss_max_gain,
           #  "PCT: Avg gain": pct_avg_gain,
           #  "PCT: Max gain": pct_max_gain,
         })
@@ -194,6 +195,7 @@ with tab2:
         summary_df.groupby("Team")
         .agg({
             "EPSS: Avg change": "sum",
+            "EPSS: Max change": "sum",
             })
         .reset_index()
         .sort_values("EPSS: Avg change", ascending=False)
