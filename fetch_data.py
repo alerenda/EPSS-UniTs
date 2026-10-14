@@ -14,6 +14,8 @@ DATA_PATH = "all_cves"
 FILENAME = "vuln_2026_09_id.csv"
 HISTORY_TIMESERIES_FILE = "team_history_timeseries.csv"
 METADATA_FILE = "team_cve_metadata.csv"
+# Student-provided fields used by the dashboard; EPSS comes from the daily cache.
+TEAM_SELECTION_COLUMNS = ["cve.id", "description", "cvss_baseScore", "cvss_vectorString"]
 URL = "https://api.first.org/data/v1/epss"
 NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
@@ -123,7 +125,7 @@ def load_teams_selection(group_files_dict):
     for group_name, file_name in group_files_dict.items():
         path = os.path.join(TEAM_PATH, file_name)
         if os.path.exists(path):
-            df = pd.read_csv(path)
+            df = pd.read_csv(path, usecols=TEAM_SELECTION_COLUMNS)
             df = df.rename(columns={"cve.id": "CVE"})
             df["Team"] = group_name
             dfs.append(df)
@@ -132,7 +134,6 @@ def load_teams_selection(group_files_dict):
     if dfs:
         print(f"Loaded selection for {team_count} teams.")
         df = pd.concat(dfs, ignore_index=True)
-        df = df.drop(columns=["epss", "percentile"], errors="ignore")
         return df
     print("No team selection files found.")
     return pd.DataFrame()
