@@ -86,8 +86,6 @@ def get_epss_summary(df, ref_date):
 
 
 st.set_page_config(page_title="CVE Selection", layout="wide")
-from pathlib import Path
-st.write("Cartella sul server:", str(Path.cwd()))
 
 st.title("FantaCVE: Predict the next high-EPSS vulnerabilities")
 

@@ -1,0 +1,3 @@
+[server]
+folderWatchList = ["/mount/src/epss-units"]
+runOnSave = true
