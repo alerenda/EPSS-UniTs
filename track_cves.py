@@ -7,8 +7,8 @@ from datetime import datetime
 import plotly.express as px
 
 # --- Configurazione
-REFERENCE_DATE_STR = "2026-09-20"
-DELIVERY_DATE_STR = "2026-09-22"
+REFERENCE_DATE_STR = "2026-10-15"
+DELIVERY_DATE_STR = "2026-10-20"
 REFERENCE_DATE = pd.to_datetime(REFERENCE_DATE_STR)
 DELIVERY_DATE = pd.to_datetime(DELIVERY_DATE_STR)
 THRESHOLD = 0.1
@@ -93,10 +93,10 @@ primary = st.get_option("theme.primaryColor")
 
 st.markdown("""
 ### How does it work
-- **One dataset**, consisting of **XXX CVEs** published between YYYY/MM/DD and YYYY/MM/DD, sourced from [NVD](https://nvd.nist.gov).
-- Each student selected 10 CVEs and submitted their picks on YYYY/MM/DD ("Reference Date").
+- **One dataset**, consisting of **14467 CVEs** published between 2026/08/28 and 2026/09/28, sourced from [NVD](https://nvd.nist.gov).
+- Each student selected 10 CVEs and submitted their picks by 2026/10/20 ("Delivery Date").
 - EPSS values for all selected CVEs are **updated daily**.
-- The final **leaderboard** will be evaluated on YYYY/MM/DD.
+- The final **leaderboard** will be evaluated on 2026/12/15.
 """)
 
 
@@ -165,7 +165,7 @@ with tab1:
         y=1,
         xref="x",
         yref="paper",
-        text="Reference Date",
+        text="Delivery Date",
         showarrow=False,
         xanchor="left",
         yanchor="bottom"
@@ -190,7 +190,7 @@ with tab1:
 with tab2:
 
     # --- Leaderboard
-    st.subheader(f"Reference date {eval_date.strftime('%Y-%m-%d')}")
+    st.subheader(f"Aggregated average and maximum changes since the delivery date ({eval_date.strftime('%Y-%m-%d')})")
 
     leaderboard = (
         summary_df.groupby("Team")

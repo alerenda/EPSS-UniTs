@@ -5,7 +5,7 @@ import os
 import time
 from datetime import datetime
 
-REFERENCE_DATE_STR = "2026-09-20"
+REFERENCE_DATE_STR = "2026-10-15"
 NVD_DATE_START = '2026-08-28T00:00:00.000Z'
 NVD_DATE_END = '2026-09-28T00:00:00.000Z'
 TEAM_PATH = "team_selection"
