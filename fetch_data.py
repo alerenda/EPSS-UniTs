@@ -64,17 +64,26 @@ def fetch_cvss_batch():
             "startIndex": start_index,
             "noRejected": ""
         }
-        response = requests.get(NVD_URL, params=params, timeout=6)
-        if response.status_code == 429:
-            print("Rate limit raggiunto. Aspetto 30 secondi...")
-            time.sleep(30)
-            continue
-
-        if response.status_code != 200:
-            print("Error:", response.status_code, response.reason, response.content)
-            break
-
-        data = response.json()
+        for attempt in range(5):
+            response = None
+            try:
+                response = requests.get(NVD_URL, params=params, timeout=(20,200))
+                response.raise_for_status()
+                data = response.json()
+                break
+            except (requests.RequestException, ValueError) as error:
+                if isinstance(error, requests.HTTPError) and response.status_code not in (408, 429, 500, 502, 503, 504):
+                    raise
+                if attempt == 4:
+                    raise
+                delay = 6 * 2 ** attempt
+                if response is not None and response.status_code == 429:
+                    delay = max(delay, 30)
+                print(f"NVD pagina {start_index}: {error}. Riprovo tra {delay}s ({attempt + 2}/5).")
+            finally:
+                if response is not None:
+                    response.close()
+            time.sleep(delay)
         total_results = data.get("totalResults", 0)
         all_cves.extend(data.get("vulnerabilities", []))
         start_index += results_per_page
