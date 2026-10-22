@@ -69,7 +69,6 @@ def get_epss_summary(df, ref_date):
             "NVD": cve_df["nvd_url"].iloc[0],
             "Team": cve_df["Team"].iloc[0],
             "Initial CVSS": f'{cve_df.iloc[0].cvss_baseScore}',
-            "Current CVSS": f'{cve_df.iloc[-1].daily_cvss_baseScore}',
             "Initial EPSS": epss_start,
             "Current EPSS": cve_df.iloc[-1]["epss"],
             "Initial PCT": pct_start,

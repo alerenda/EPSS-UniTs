@@ -2,12 +2,9 @@
 import pandas as pd
 import requests
 import os
-import time
 from datetime import datetime
 
 REFERENCE_DATE_STR = "2026-10-15"
-NVD_DATE_START = '2026-08-28T00:00:00.000Z'
-NVD_DATE_END = '2026-09-28T00:00:00.000Z'
 TEAM_PATH = "team_selection"
 CACHE_PATH = "cache_epss"
 DATA_PATH = "all_cves"  
@@ -17,88 +14,12 @@ METADATA_FILE = "team_cve_metadata.csv"
 # Student-provided fields used by the dashboard; EPSS comes from the daily cache.
 TEAM_SELECTION_COLUMNS = ["cve.id", "description", "cvss_baseScore", "cvss_vectorString"]
 URL = "https://api.first.org/data/v1/epss"
-NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 
 if not os.path.exists(CACHE_PATH):
     os.makedirs(CACHE_PATH)
 
-def _pick_primary_or_first(metrics):
-    """From a list of CVSS metrics pick the 'Primary' entry, or the first available one."""
-    if not isinstance(metrics, list) or not metrics:
-        return None
-    for entry in metrics:
-        if isinstance(entry, dict) and entry.get("type") == "Primary":
-            return entry
-    return metrics[0] if isinstance(metrics[0], dict) else None
-
-def extract_cvss_data(row):
-    """
-    Extracts CVSS fields from V3.1 or V3.0.
-    Always returns a dict (possibly empty), with keys prefixed with 'cvss_'.
-    """
-    for version_key in ("cve.metrics.cvssMetricV31", "cve.metrics.cvssMetricV30"):
-        metrics = row.get(version_key)
-        entry = _pick_primary_or_first(metrics)
-        if entry:
-            data = entry.get("cvssData") or {}
-            if isinstance(data, dict):
-                return {f"cvss_{k}": v for k, v in data.items()}
-    return {}
-
-
-def fetch_cvss_batch():
-    date_start_nvd = NVD_DATE_START # Do NOT change these dates
-    date_end_nvd   = NVD_DATE_END # Do NOT change these dates
-    start_index = 0
-    results_per_page = 1000
-    total_results = 1 
-
-    all_cves = []
-
-    while start_index < total_results:
-        params = {
-            "pubStartDate": date_start_nvd,
-            "pubEndDate": date_end_nvd,
-            "resultsPerPage": results_per_page,
-            "startIndex": start_index,
-            "noRejected": ""
-        }
-        for attempt in range(5):
-            response = None
-            try:
-                response = requests.get(NVD_URL, params=params, timeout=(20,200))
-                response.raise_for_status()
-                data = response.json()
-                break
-            except (requests.RequestException, ValueError) as error:
-                if isinstance(error, requests.HTTPError) and response.status_code not in (408, 429, 500, 502, 503, 504):
-                    raise
-                if attempt == 4:
-                    raise
-                delay = 6 * 2 ** attempt
-                if response is not None and response.status_code == 429:
-                    delay = max(delay, 30)
-                print(f"NVD pagina {start_index}: {error}. Riprovo tra {delay}s ({attempt + 2}/5).")
-            finally:
-                if response is not None:
-                    response.close()
-            time.sleep(delay)
-        total_results = data.get("totalResults", 0)
-        all_cves.extend(data.get("vulnerabilities", []))
-        start_index += results_per_page
-        print(f"{start_index} / {total_results}")
-        time.sleep(6)
-    df = pd.json_normalize(all_cves, record_path=None, sep='.', max_level=None)
-    cvss_expanded = df.apply(lambda row: pd.Series(extract_cvss_data(row)), axis=1)
-    df = pd.concat([df, cvss_expanded], axis=1)
-    df = df[["cve.id", "cvss_baseScore", "cve.lastModified"]]
-    return df
-
 def fetch_historical_data(cve_list, start_date=REFERENCE_DATE_STR):
-    df_cvss = fetch_cvss_batch()
-    df_cvss.to_csv(os.path.join(CACHE_PATH,"cvss_scores_full.csv"), index=False)
-
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.today()
     count_save = 0
@@ -122,7 +43,6 @@ def fetch_historical_data(cve_list, start_date=REFERENCE_DATE_STR):
                 else:
                     print(f"Failed to fetch data for {date_str}: {r.status_code}")
             daily_df["percentile_subset"] = daily_df['epss'].rank(method='min', pct=True)
-            daily_df = daily_df.merge(df_cvss, left_on="cve", right_on="cve.id", how="left", validate="one_to_one")
             daily_df.to_csv(cache_file, index=False)
             count_save += 1
                   
@@ -158,8 +78,11 @@ def get_epss_history(group_files):
         print(path)
         if os.path.exists(path):
             df = pd.read_csv(path)
-            df = df.drop(columns = 'cve.id', errors='ignore')
-            df = df.rename(columns={"cvss_baseScore": "daily_cvss_baseScore"})
+            # Ignore NVD fields in caches created by older versions.
+            df = df.drop(
+                columns=["cve.id", "cvss_baseScore", "daily_cvss_baseScore", "cve.lastModified"],
+                errors="ignore",
+            )
         all_data.append(df)
 
     df_epss_history = pd.concat(all_data, ignore_index=True)
@@ -181,7 +104,6 @@ def save_compact_history(df_epss_history):
         "epss",
         "percentile",
         "percentile_subset",
-        "daily_cvss_baseScore",
     ]
     existing_timeseries_columns = [col for col in timeseries_columns if col in df_epss_history.columns]
     df_epss_history[existing_timeseries_columns].to_csv(HISTORY_TIMESERIES_FILE, index=False)
