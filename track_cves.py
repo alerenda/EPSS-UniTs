@@ -30,7 +30,7 @@ for fname in os.listdir(DATA_PATH):
     group_files[fname.replace(".csv", "")] = fname
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=60)
 def load_epss_data():
     df_history = pd.read_csv(HISTORY_TIMESERIES_FILE)
     df_metadata = pd.read_csv(METADATA_FILE)
